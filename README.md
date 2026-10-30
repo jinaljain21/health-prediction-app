@@ -1,5 +1,7 @@
 # Health Risk Predictor
 
+[![Tests](https://github.com/jinaljain21/health-prediction-app/actions/workflows/tests.yml/badge.svg)](https://github.com/jinaljain21/health-prediction-app/actions/workflows/tests.yml)
+
 A web application that stores patient blood test results and uses the Google Gemini API to predict possible health risks.
 
 Users can add, view, edit and delete patient records. Each record is validated on the server, saved to a database, and sent to Gemini, which returns a risk level (Low / Moderate / High) and a short remark that is shown in the **Remarks** column.
