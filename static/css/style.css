@@ -1,0 +1,45 @@
+body {
+  background-color: #f4f6f9;
+}
+
+.search-box {
+  max-width: 260px;
+}
+
+.table th {
+  white-space: nowrap;
+  font-size: 0.85rem;
+}
+
+.remarks-cell {
+  min-width: 260px;
+  max-width: 420px;
+  font-size: 0.875rem;
+}
+
+.summary-card {
+  border: 2px solid transparent;
+  transition: border-color 0.15s ease;
+}
+
+.summary-card:hover {
+  border-color: var(--bs-border-color);
+}
+
+.summary-card.active {
+  border-color: var(--bs-primary);
+}
+
+.value-high {
+  color: var(--bs-danger);
+  font-weight: 600;
+}
+
+.value-low {
+  color: var(--bs-primary);
+  font-weight: 600;
+}
+
+.empty-state {
+  padding: 2.5rem 1rem;
+}
