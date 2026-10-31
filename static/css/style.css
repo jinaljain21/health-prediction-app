@@ -1,5 +1,10 @@
+/* Bootstrap colour variables switch automatically between light and dark mode */
 body {
-  background-color: #f4f6f9;
+  background-color: var(--bs-tertiary-bg);
+}
+
+.table > thead th {
+  --bs-table-bg: var(--bs-secondary-bg);
 }
 
 .search-box {

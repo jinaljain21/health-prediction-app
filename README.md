@@ -40,6 +40,7 @@ A web application, built with Python, Flask and Google Gemini, that stores patie
 - Blood values outside the normal adult range are highlighted (red ↑ high, blue ↓ low)
 - Search by name or email
 - Export all records to CSV (protected against spreadsheet formula injection)
+- Light and dark mode, remembered between visits
 
 ### Testing
 - 57 automated tests, including all 10 records from the assignment
@@ -70,6 +71,7 @@ routes.py               REST API (create, read, update, delete, AI retry, CSV ex
 templates/index.html    the main web page
 templates/report.html   the printable patient report
 static/js/app.js        sends data to the API and updates the page
+static/js/theme.js      light / dark mode toggle
 static/css/style.css    page styling
 tests/                  automated tests
 .github/workflows/      GitHub Actions test pipeline
