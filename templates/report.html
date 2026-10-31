@@ -1,0 +1,99 @@
+{% set status_badges = {
+  "normal": ("text-bg-success", "Normal"),
+  "high": ("text-bg-danger", "High ↑"),
+  "low": ("text-bg-primary", "Low ↓"),
+} %}
+{% set risk_alerts = {"High": "alert-danger", "Moderate": "alert-warning", "Low": "alert-success"} %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Health Report - {{ patient.full_name }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+  <main class="container my-4 report">
+    <div class="d-flex justify-content-between align-items-center mb-3 no-print">
+      <a href="{{ url_for('index') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Back to records
+      </a>
+      <button type="button" class="btn btn-sm btn-primary" onclick="window.print()">
+        <i class="bi bi-printer me-1"></i>Print / Save as PDF
+      </button>
+    </div>
+
+    <article class="card shadow-sm">
+      <div class="card-body p-4 p-md-5">
+        <header class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-4">
+          <div>
+            <h1 class="h4 mb-1"><i class="bi bi-heart-pulse text-primary me-2"></i>Blood Test Health Report</h1>
+            <div class="small text-body-secondary">Health Risk Predictor</div>
+          </div>
+          <div class="text-end small text-body-secondary">
+            Report date: <strong class="text-body">{{ report_date }}</strong><br>
+            Record #{{ patient.id }}
+          </div>
+        </header>
+
+        <section class="row g-3 mb-4">
+          <div class="col-sm-4">
+            <div class="small text-body-secondary">Full Name</div>
+            <div class="fw-semibold">{{ patient.full_name }}</div>
+          </div>
+          <div class="col-sm-4">
+            <div class="small text-body-secondary">Date of Birth</div>
+            <div class="fw-semibold">{{ patient.date_of_birth }} ({{ age }} years)</div>
+          </div>
+          <div class="col-sm-4">
+            <div class="small text-body-secondary">Email</div>
+            <div class="fw-semibold text-break">{{ patient.email }}</div>
+          </div>
+        </section>
+
+        <h2 class="h6 text-uppercase text-body-secondary mb-2">Test Results</h2>
+        <table class="table align-middle mb-4">
+          <thead class="table-light">
+            <tr>
+              <th>Test</th>
+              <th class="text-end">Result</th>
+              <th>Normal Range</th>
+              <th class="text-end">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for field, (_low, _high, range_label) in reference_ranges.items() %}
+              {% set badge_class, badge_text = status_badges[patient.flags[field]] %}
+              <tr>
+                <td class="fw-semibold">{{ field|capitalize }}</td>
+                <td class="text-end">{{ '%g' % patient[field] }} {{ units[field] }}</td>
+                <td>{{ range_label }}</td>
+                <td class="text-end"><span class="badge {{ badge_class }}">{{ badge_text }}</span></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        <h2 class="h6 text-uppercase text-body-secondary mb-2">AI Assessment</h2>
+        {% if patient.risk_level %}
+          <div class="alert {{ risk_alerts[patient.risk_level] }} mb-4">
+            <div class="fw-semibold mb-1">{{ patient.risk_level }} risk</div>
+            {{ patient.remarks }}
+          </div>
+        {% else %}
+          <div class="alert alert-secondary mb-4">
+            No AI prediction is available for this record yet. Use "Retry AI" on the records page.
+          </div>
+        {% endif %}
+
+        <p class="small text-body-secondary mb-0">
+          This report was generated with the help of AI (Google Gemini) from the values entered.
+          It is a screening aid only and not a medical diagnosis. Please consult a doctor to interpret these results.
+        </p>
+      </div>
+    </article>
+  </main>
+</body>
+</html>

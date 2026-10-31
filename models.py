@@ -44,3 +44,22 @@ class Patient(db.Model):
             "risk_level": self.risk_level,
             "remarks": self.remarks,
         }
+
+
+class PredictionCache(db.Model):
+    """Saved AI answers, so identical inputs never call the API twice."""
+
+    __tablename__ = "prediction_cache"
+    __table_args__ = (
+        db.UniqueConstraint("model", "age", "glucose", "haemoglobin", "cholesterol", name="uq_prediction_inputs"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    model = db.Column(db.String(60), nullable=False)
+    age = db.Column(db.Integer, nullable=False)
+    glucose = db.Column(db.Float, nullable=False)
+    haemoglobin = db.Column(db.Float, nullable=False)
+    cholesterol = db.Column(db.Float, nullable=False)
+    risk_level = db.Column(db.String(20), nullable=False)
+    remarks = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=utc_now, nullable=False)

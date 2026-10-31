@@ -90,6 +90,9 @@ function renderTable() {
         <td class="text-end text-nowrap">${renderValue(p, "cholesterol")}</td>
         <td class="remarks-cell">${renderRemarks(p)}</td>
         <td class="text-end text-nowrap">
+          <a class="btn btn-sm btn-outline-secondary" href="/patients/${p.id}/report" target="_blank" title="Health report">
+            <i class="bi bi-file-earmark-medical"></i>
+          </a>
           <button class="btn btn-sm btn-outline-primary" data-action="edit" data-id="${p.id}" title="Edit">
             <i class="bi bi-pencil"></i>
           </button>
@@ -153,6 +156,7 @@ form.addEventListener("submit", async (event) => {
       return;
     }
     showToast(editingId ? "Record updated." : "Record created.", "success");
+    if (body.ai_cached) showToast("Same values seen before: AI result reused from cache, no API call needed.", "info");
     if (body.warning) showToast(body.warning, "warning");
     resetForm();
     await loadPatients();

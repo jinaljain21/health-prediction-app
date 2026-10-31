@@ -25,6 +25,12 @@ A web application, built with Python, Flask and Google Gemini, that stores patie
 - Only the age and blood values are sent to the AI, never the name or email
 - If the AI is unavailable (no key, timeout, quota reached), the record is still saved and can be retried with one click
 - When a record is edited, the AI is only called again if the date of birth or a blood value changed
+- AI answers are cached: if the same age and blood values were analysed before, the saved answer is reused instantly with no API call
+- A rate limit (10 AI calls per minute by default) protects the API quota on the public demo
+
+### Patient Report
+- One-page health report for each patient: details, age, each result against its normal range, and the AI assessment
+- Print it or save it as a PDF directly from the browser
 
 ### Dashboard
 - Summary cards showing total patients and the number at High, Moderate and Low risk; click a card to filter the table
@@ -33,7 +39,7 @@ A web application, built with Python, Flask and Google Gemini, that stores patie
 - Export all records to CSV (protected against spreadsheet formula injection)
 
 ### Testing
-- 51 automated tests, including all 10 records from the assignment
+- 57 automated tests, including all 10 records from the assignment
 - GitHub Actions runs the tests automatically on every push
 
 ## Tech Stack
@@ -45,6 +51,7 @@ A web application, built with Python, Flask and Google Gemini, that stores patie
 - HTML, Bootstrap 5 and JavaScript (frontend)
 - pytest (automated tests)
 - GitHub Actions (continuous integration)
+- Gunicorn and Render (production server and hosting)
 - Claude Code (AI pair programmer used to build the project)
 
 ## Project Structure
@@ -55,12 +62,15 @@ models.py               the patient database table
 validators.py           checks every field before saving
 ai_service.py           Gemini API connection and prompt
 reference_ranges.py     normal ranges used to highlight abnormal values
+rate_limiter.py         limits AI calls per minute
 routes.py               REST API (create, read, update, delete, AI retry, CSV export)
-templates/index.html    the web page
+templates/index.html    the main web page
+templates/report.html   the printable patient report
 static/js/app.js        sends data to the API and updates the page
 static/css/style.css    page styling
 tests/                  automated tests
 .github/workflows/      GitHub Actions test pipeline
+render.yaml             Render deployment settings
 .env.example            example settings (no real keys)
 ```
 
@@ -74,6 +84,8 @@ tests/                  automated tests
 - `GET /api/patients/export.csv` - download all records as CSV
 
 Validation errors return HTTP 400, duplicates return HTTP 409, and missing records return HTTP 404.
+
+The printable report for a patient is at `/patients/<id>/report`.
 
 ## How to Run Locally
 1. Install Python 3.12.
@@ -103,6 +115,15 @@ pytest
 ```
 
 Note: the free Gemini plan allows a limited number of requests per day.
+
+## Deployment
+The app is set up for Render using `render.yaml`:
+- Build command: `pip install -r requirements.txt`
+- Start command: `gunicorn "app:create_app()"` (a production server instead of Flask's development server)
+- The Gemini API key is entered as an environment variable in the Render dashboard, never stored in the code
+- Every push to GitHub redeploys the app automatically
+
+On the free plan the app sleeps after 15 minutes without visitors (the first visit then takes up to a minute), and the SQLite data resets when the app restarts. A production setup would use a managed database such as PostgreSQL by changing `DATABASE_URL`.
 
 ## Test Data Results
 The 10 records from the assignment give these results:

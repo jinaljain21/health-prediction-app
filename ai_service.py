@@ -36,9 +36,9 @@ def build_prompt(age, glucose, haemoglobin, cholesterol):
     return (
         "You are a clinical decision-support assistant reviewing blood test results.\n\n"
         f"Patient age: {age} years (sex not recorded)\n"
-        f"Blood glucose: {glucose} mg/dL\n"
-        f"Haemoglobin: {haemoglobin} g/dL\n"
-        f"Total cholesterol: {cholesterol} mg/dL\n\n"
+        f"Blood glucose: {glucose:g} mg/dL\n"
+        f"Haemoglobin: {haemoglobin:g} g/dL\n"
+        f"Total cholesterol: {cholesterol:g} mg/dL\n\n"
         "Compare each value with standard adult reference ranges and identify the most likely "
         "health conditions or disease risks (for example diabetes, anaemia, polycythaemia, "
         "high cholesterol or cardiovascular disease).\n"
@@ -50,12 +50,12 @@ def build_prompt(age, glucose, haemoglobin, cholesterol):
     )
 
 
-def predict_health_risk(date_of_birth, glucose, haemoglobin, cholesterol, *, api_key, model, timeout=30):
+def predict_health_risk(age, glucose, haemoglobin, cholesterol, *, api_key, model, timeout=30):
     """Call Gemini and return {"risk_level": ..., "remarks": ...}. Raises AIServiceError on failure."""
     if not api_key:
         raise AIServiceError("GEMINI_API_KEY is not configured.")
 
-    prompt = build_prompt(calculate_age(date_of_birth), glucose, haemoglobin, cholesterol)
+    prompt = build_prompt(age, glucose, haemoglobin, cholesterol)
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {

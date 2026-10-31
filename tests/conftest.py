@@ -11,7 +11,7 @@ class TestingConfig(Config):
     GEMINI_API_KEY = "test-key"
 
 
-def fake_prediction(date_of_birth, glucose, haemoglobin, cholesterol, **_kwargs):
+def fake_prediction(age, glucose, haemoglobin, cholesterol, **_kwargs):
     """Stands in for the Gemini call so tests run offline and give predictable results."""
     risk = "High" if glucose >= 200 or cholesterol >= 240 else "Low"
     return {"risk_level": risk, "remarks": f"Test prediction: {risk} risk."}

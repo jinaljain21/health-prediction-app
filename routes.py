@@ -6,8 +6,8 @@ from datetime import date
 from flask import Blueprint, Response, current_app, jsonify, request
 from sqlalchemy import func
 
-from ai_service import AIServiceError, predict_health_risk
-from models import Patient, db
+from ai_service import AIServiceError, calculate_age, predict_health_risk
+from models import Patient, PredictionCache, db
 from validators import validate_patient
 
 api = Blueprint("api", __name__, url_prefix="/api")
@@ -40,31 +40,52 @@ def find_duplicate(cleaned, exclude_id=None):
     return query.first()
 
 
+def get_prediction(patient):
+    """Return (prediction, from_cache). Uses a saved answer when the same inputs were seen before."""
+    inputs = {
+        "model": current_app.config["GEMINI_MODEL"],
+        "age": calculate_age(patient.date_of_birth),
+        "glucose": patient.glucose,
+        "haemoglobin": patient.haemoglobin,
+        "cholesterol": patient.cholesterol,
+    }
+    cached = PredictionCache.query.filter_by(**inputs).first()
+    if cached:
+        return {"risk_level": cached.risk_level, "remarks": cached.remarks}, True
+
+    if not current_app.extensions["ai_rate_limiter"].allow():
+        raise AIServiceError("AI request limit reached. Please retry in a minute.")
+
+    prediction = predict_health_risk(
+        inputs["age"],
+        patient.glucose,
+        patient.haemoglobin,
+        patient.cholesterol,
+        api_key=current_app.config["GEMINI_API_KEY"],
+        model=inputs["model"],
+        timeout=current_app.config["AI_TIMEOUT_SECONDS"],
+    )
+    db.session.add(PredictionCache(**inputs, **prediction))
+    return prediction, False
+
+
 def apply_ai_prediction(patient):
-    """Fill risk_level and remarks from the AI. Returns an error message if the call failed."""
+    """Fill risk_level and remarks. Returns (error message or None, whether the cache was used)."""
     try:
-        prediction = predict_health_risk(
-            patient.date_of_birth,
-            patient.glucose,
-            patient.haemoglobin,
-            patient.cholesterol,
-            api_key=current_app.config["GEMINI_API_KEY"],
-            model=current_app.config["GEMINI_MODEL"],
-            timeout=current_app.config["AI_TIMEOUT_SECONDS"],
-        )
+        prediction, from_cache = get_prediction(patient)
     except AIServiceError as exc:
         current_app.logger.warning("AI prediction failed: %s", exc)
         patient.risk_level = None
         patient.remarks = f"AI prediction unavailable: {exc}"
-        return str(exc)
+        return str(exc), False
 
     patient.risk_level = prediction["risk_level"]
     patient.remarks = prediction["remarks"]
-    return None
+    return None, from_cache
 
 
-def saved_response(patient, ai_error, status):
-    body = {"patient": patient.to_dict()}
+def saved_response(patient, ai_error, from_cache, status):
+    body = {"patient": patient.to_dict(), "ai_cached": from_cache}
     if ai_error:
         body["warning"] = f"Record saved, but the AI prediction failed: {ai_error}"
     return jsonify(body), status
@@ -129,10 +150,10 @@ def create_patient():
         return duplicate_response(duplicate)
 
     patient = Patient(**cleaned)
-    ai_error = apply_ai_prediction(patient)
+    ai_error, from_cache = apply_ai_prediction(patient)
     db.session.add(patient)
     db.session.commit()
-    return saved_response(patient, ai_error, 201)
+    return saved_response(patient, ai_error, from_cache, 201)
 
 
 @api.put("/patients/<int:patient_id>")
@@ -153,9 +174,9 @@ def update_patient(patient_id):
     for field, value in cleaned.items():
         setattr(patient, field, value)
 
-    ai_error = apply_ai_prediction(patient) if needs_prediction else None
+    ai_error, from_cache = apply_ai_prediction(patient) if needs_prediction else (None, False)
     db.session.commit()
-    return saved_response(patient, ai_error, 200)
+    return saved_response(patient, ai_error, from_cache, 200)
 
 
 @api.delete("/patients/<int:patient_id>")
@@ -170,7 +191,7 @@ def delete_patient(patient_id):
 def regenerate_remarks(patient_id):
     """Retry the AI prediction for a record, e.g. after the API was unavailable."""
     patient = db.get_or_404(Patient, patient_id)
-    ai_error = apply_ai_prediction(patient)
+    ai_error, _from_cache = apply_ai_prediction(patient)
     db.session.commit()
     if ai_error:
         return jsonify(error=f"AI prediction failed: {ai_error}", patient=patient.to_dict()), 502

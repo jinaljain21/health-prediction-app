@@ -41,6 +41,31 @@ body {
   font-weight: 600;
 }
 
+.report {
+  max-width: 860px;
+}
+
+@media print {
+  body {
+    background-color: #fff;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .report .card {
+    border: 0;
+    box-shadow: none !important;
+  }
+
+  /* Keep badge and alert colours when printing or saving as PDF */
+  .report {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
 .empty-state {
   padding: 2.5rem 1rem;
 }

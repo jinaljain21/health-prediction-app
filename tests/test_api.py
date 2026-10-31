@@ -107,6 +107,51 @@ def test_export_csv(client):
     assert "Robyn Pears,28/01/1960,robyn@gmail.com" in lines[1]
 
 
+def test_identical_inputs_reuse_cached_prediction(client, monkeypatch):
+    calls = []
+
+    def counting_prediction(age, glucose, haemoglobin, cholesterol, **_kwargs):
+        calls.append(age)
+        return {"risk_level": "High", "remarks": "Glucose is high."}
+
+    monkeypatch.setattr("routes.predict_health_risk", counting_prediction)
+    first = create(client, TASK_RECORDS[0])
+    # Different person, same age and blood values
+    second = create(client, ("Another Person", "28.01.1960", "another@gmail.com", "232", "13.5", "180"))
+
+    assert len(calls) == 1
+    assert first.json["ai_cached"] is False
+    assert second.json["ai_cached"] is True
+    assert second.json["patient"]["remarks"] == "Glucose is high."
+
+
+def test_ai_rate_limit_saves_record_with_warning(app, client):
+    from rate_limiter import RateLimiter
+
+    app.extensions["ai_rate_limiter"] = RateLimiter(max_calls=1)
+    first = create(client, TASK_RECORDS[0])
+    second = create(client, TASK_RECORDS[2])
+
+    assert first.json["patient"]["risk_level"] == "High"
+    assert second.status_code == 201
+    assert "limit reached" in second.json["warning"]
+    assert second.json["patient"]["risk_level"] is None
+
+
+def test_patient_report_page(client):
+    patient = create(client, TASK_RECORDS[4]).json["patient"]
+
+    response = client.get(f"/patients/{patient['id']}/report")
+    html = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "Sam Kerr" in html
+    assert "198 mg/dL" in html
+    assert "High ↑" in html and "Low ↓" in html
+    assert "Test prediction: Low risk." in html
+    assert client.get("/patients/999/report").status_code == 404
+
+
 def test_missing_record_returns_404(client):
     assert client.put("/api/patients/999", json=as_payload(TASK_RECORDS[0])).status_code == 404
     assert client.delete("/api/patients/999").status_code == 404

@@ -13,5 +13,6 @@ class Config:
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
     GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
     AI_TIMEOUT_SECONDS = int(os.getenv("AI_TIMEOUT_SECONDS", "30"))
+    AI_CALLS_PER_MINUTE = int(os.getenv("AI_CALLS_PER_MINUTE", "10"))
 
-    DEBUG = os.getenv("FLASK_DEBUG", "1") == "1"
+    DEBUG = os.getenv("FLASK_DEBUG", "0") == "1"
