@@ -4,6 +4,9 @@
 
 A web application, built with Python, Flask and Google Gemini, that stores patient blood test results and predicts possible health risks. Every record is validated before it is saved, and Gemini writes a short remark explaining the likely risk (for example diabetes, anaemia or high cholesterol), shown in the Remarks column.
 
+**Live demo:** https://health-risk-predictor-hgqu.onrender.com
+(Hosted on Render's free plan: the first visit can take up to a minute to wake up, and data may reset.)
+
 ## Features
 
 ### Patient Records (CRUD)
